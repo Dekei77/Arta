@@ -2,8 +2,11 @@ export default function PropertyPanel({ selectedElement, onChange, onDelete }) {
   if (!selectedElement) return null;
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    onChange({ ...selectedElement, [name]: value });
+    const { name, type, checked, value } = e.target;
+    onChange({
+      ...selectedElement,
+      [name]: type === "checkbox" ? checked : value
+    });
   };
 
   const handleFieldInsert = (e) => {
@@ -49,6 +52,18 @@ export default function PropertyPanel({ selectedElement, onChange, onDelete }) {
             style={{ width: "100%", marginBottom: "10px" }}
           />
 
+          <label>
+            <input
+              type="checkbox"
+              name="bold"
+              checked={!!selectedElement.bold}
+              onChange={handleChange}
+            />{" "}
+            Жирный
+          </label>
+
+          <br />
+          <br />
           <label>Добавить поле:</label>
           <select onChange={handleFieldInsert} style={{ width: "100%" }}>
             <option value="">Выберите поле...</option>

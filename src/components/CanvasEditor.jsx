@@ -1,9 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { Stage, Layer, Text, Rect, Circle, Line, Image as KonvaImage, Transformer } from "react-konva";
+import {
+  Stage,
+  Layer,
+  Text,
+  Rect,
+  Circle,
+  Line,
+  Image as KonvaImage,
+  Transformer
+} from "react-konva";
 import PropertyPanel from "./PropertyPanel";
 import useImage from "use-image";
 import * as pdfMake from "pdfmake/build/pdfmake";
 import * as pdfFonts from "pdfmake/build/vfs_fonts";
+import ReactJson from "react-json-view";
 
 pdfMake.vfs = pdfFonts.vfs;
 
@@ -74,6 +84,7 @@ const TransformerComponent = ({ selectedShapeName, onTransform }) => {
 };
 
 export default function CanvasEditor() {
+  const [editMode, setEditMode] = useState("visual");
   const [elements, setElements] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [history, setHistory] = useState([]);
@@ -131,6 +142,7 @@ export default function CanvasEditor() {
         x: 50,
         y: 100 + elements.length * 40,
         fontSize: 18,
+        bold: false,
         draggable: true
       }
     ]);
@@ -210,6 +222,7 @@ export default function CanvasEditor() {
         return {
           text: textWithData,
           fontSize: el.fontSize || 12,
+          bold: el.bold || false,
           absolutePosition: { x: el.x, y: el.y }
         };
       } else if (el.type === "rect") {
@@ -263,106 +276,129 @@ export default function CanvasEditor() {
     <div style={{ display: "flex", padding: 20 }}>
       <div>
         <div style={{ marginBottom: 10 }}>
-          <button onClick={addTextField}>➕ Текст</button>
-          <input type="file" accept="image/*" onChange={handleImageUpload} style={{ marginLeft: 10 }} />
-          <button onClick={addRect} style={{ marginLeft: 10 }}>📦 Прямоугольник</button>
-          <button onClick={addCircle} style={{ marginLeft: 10 }}>⚪ Круг</button>
-          <button onClick={addLine} style={{ marginLeft: 10 }}>📏 Линия</button>
-          <button onClick={undo} style={{ marginLeft: 10 }} disabled={history.length === 0}>↩ Undo</button>
-          <button onClick={redo} style={{ marginLeft: 5 }} disabled={future.length === 0}>↪ Redo</button>
-          <button onClick={generatePDF} style={{ marginLeft: 10, background: "#4caf50", color: "white" }}>📄 Экспорт в PDF</button>
+          <button onClick={() => setEditMode(editMode === "visual" ? "code" : "visual")}>
+            {editMode === "visual" ? "🧾 Код" : "🖼️ Визуал"}
+          </button>
+
+          {editMode === "visual" && (
+            <>
+              <button onClick={addTextField}>➕ Текст</button>
+              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ marginLeft: 10 }} />
+              <button onClick={addRect} style={{ marginLeft: 10 }}>📦 Прямоугольник</button>
+              <button onClick={addCircle} style={{ marginLeft: 10 }}>⚪ Круг</button>
+              <button onClick={addLine} style={{ marginLeft: 10 }}>📏 Линия</button>
+              <button onClick={undo} style={{ marginLeft: 10 }} disabled={history.length === 0}>↩ Undo</button>
+              <button onClick={redo} style={{ marginLeft: 5 }} disabled={future.length === 0}>↪ Redo</button>
+              <button onClick={generatePDF} style={{ marginLeft: 10, background: "#4caf50", color: "white" }}>📄 Экспорт в PDF</button>
+            </>
+          )}
         </div>
 
-        <Stage width={800} height={600} style={{ border: "1px solid #ccc", background: "#fff" }}>
-          <Layer>
-            {elements.map((el) => {
-              if (el.type === "text") {
-                return (
-                  <Text
-                    key={el.id}
-                    id={el.id}
-                    text={el.content}
-                    x={el.x}
-                    y={el.y}
-                    fontSize={el.fontSize}
-                    draggable
-                    onClick={() => setSelectedId(el.id)}
-                    onDragEnd={(e) => handleDragEnd(e, el.id)}
-                    fill={selectedId === el.id ? "red" : "black"}
-                  />
-                );
-              } else if (el.type === "image") {
-                return (
-                  <ImageElement
-                    key={el.id}
-                    el={el}
-                    isSelected={selectedId === el.id}
-                    onSelect={setSelectedId}
-                    onDragEnd={handleDragEnd}
-                  />
-                );
-              } else if (el.type === "rect") {
-                return (
-                  <Rect
-                    key={el.id}
-                    id={el.id}
-                    x={el.x}
-                    y={el.y}
-                    width={el.width}
-                    height={el.height}
-                    fill={el.fill}
-                    draggable
-                    onClick={() => setSelectedId(el.id)}
-                    onDragEnd={(e) => handleDragEnd(e, el.id)}
-                    stroke={selectedId === el.id ? "red" : "black"}
-                    strokeWidth={selectedId === el.id ? 2 : 1}
-                  />
-                );
-              } else if (el.type === "circle") {
-                return (
-                  <Circle
-                    key={el.id}
-                    id={el.id}
-                    x={el.x}
-                    y={el.y}
-                    radius={el.radius}
-                    fill={el.fill}
-                    draggable
-                    onClick={() => setSelectedId(el.id)}
-                    onDragEnd={(e) => handleDragEnd(e, el.id)}
-                    stroke={selectedId === el.id ? "red" : "black"}
-                    strokeWidth={selectedId === el.id ? 2 : 1}
-                  />
-                );
-              } else if (el.type === "line") {
-                return (
-                  <Line
-                    key={el.id}
-                    id={el.id}
-                    points={el.points}
-                    stroke={el.stroke}
-                    strokeWidth={el.strokeWidth}
-                    draggable
-                    onClick={() => setSelectedId(el.id)}
-                    onDragEnd={(e) => handleDragEnd(e, el.id)}
-                  />
-                );
-              }
-              return null;
-            })}
-            <TransformerComponent
-              selectedShapeName={selectedId}
-              onTransform={setElements}
-            />
-          </Layer>
-        </Stage>
+        {editMode === "visual" ? (
+          <Stage width={800} height={600} style={{ border: "1px solid #ccc", background: "#fff" }}>
+            <Layer>
+              {elements.map((el) => {
+                if (el.type === "text") {
+                  return (
+                    <Text
+                      key={el.id}
+                      id={el.id}
+                      text={el.content}
+                      x={el.x}
+                      y={el.y}
+                      fontSize={el.fontSize}
+                      fontStyle={el.bold ? "bold" : "normal"}
+                      draggable
+                      onClick={() => setSelectedId(el.id)}
+                      onDragEnd={(e) => handleDragEnd(e, el.id)}
+                      fill={selectedId === el.id ? "red" : "black"}
+                    />
+                  );
+                } else if (el.type === "image") {
+                  return (
+                    <ImageElement
+                      key={el.id}
+                      el={el}
+                      isSelected={selectedId === el.id}
+                      onSelect={setSelectedId}
+                      onDragEnd={handleDragEnd}
+                    />
+                  );
+                } else if (el.type === "rect") {
+                  return (
+                    <Rect
+                      key={el.id}
+                      id={el.id}
+                      x={el.x}
+                      y={el.y}
+                      width={el.width}
+                      height={el.height}
+                      fill={el.fill}
+                      draggable
+                      onClick={() => setSelectedId(el.id)}
+                      onDragEnd={(e) => handleDragEnd(e, el.id)}
+                      stroke={selectedId === el.id ? "red" : "black"}
+                      strokeWidth={selectedId === el.id ? 2 : 1}
+                    />
+                  );
+                } else if (el.type === "circle") {
+                  return (
+                    <Circle
+                      key={el.id}
+                      id={el.id}
+                      x={el.x}
+                      y={el.y}
+                      radius={el.radius}
+                      fill={el.fill}
+                      draggable
+                      onClick={() => setSelectedId(el.id)}
+                      onDragEnd={(e) => handleDragEnd(e, el.id)}
+                      stroke={selectedId === el.id ? "red" : "black"}
+                      strokeWidth={selectedId === el.id ? 2 : 1}
+                    />
+                  );
+                } else if (el.type === "line") {
+                  return (
+                    <Line
+                      key={el.id}
+                      id={el.id}
+                      points={el.points}
+                      stroke={el.stroke}
+                      strokeWidth={el.strokeWidth}
+                      draggable
+                      onClick={() => setSelectedId(el.id)}
+                      onDragEnd={(e) => handleDragEnd(e, el.id)}
+                    />
+                  );
+                }
+                return null;
+              })}
+              <TransformerComponent
+                selectedShapeName={selectedId}
+                onTransform={setElements}
+              />
+            </Layer>
+          </Stage>
+        ) : (
+          <ReactJson
+            src={elements}
+            name={false}
+            onEdit={({ updated_src }) => setElements(updated_src)}
+            onAdd={({ updated_src }) => setElements(updated_src)}
+            onDelete={({ updated_src }) => setElements(updated_src)}
+            theme="monokai"
+            collapsed={false}
+          />
+        )}
       </div>
 
-      <PropertyPanel
-        selectedElement={selectedElement}
-        onChange={updateElement}
-        onDelete={deleteElement}
-      />
+      {editMode === "visual" && (
+        <PropertyPanel
+          selectedElement={selectedElement}
+          onChange={updateElement}
+          onDelete={deleteElement}
+        />
+      )}
     </div>
   );
 }
