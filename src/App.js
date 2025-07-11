@@ -1,23 +1,10 @@
-import logo from './logo.svg';
-import './App.css';
+import CanvasEditor from "./components/CanvasEditor";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <h1 style={{ padding: "10px" }}>🎨 ARTA PDF Template Editor</h1>
+      <CanvasEditor />
     </div>
   );
 }
