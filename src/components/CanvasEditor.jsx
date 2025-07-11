@@ -2,6 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { Stage, Layer, Text, Rect, Circle, Line, Image as KonvaImage, Transformer } from "react-konva";
 import PropertyPanel from "./PropertyPanel";
 import useImage from "use-image";
+import * as pdfMake from "pdfmake/build/pdfmake";
+import * as pdfFonts from "pdfmake/build/vfs_fonts";
+
+pdfMake.vfs = pdfFonts.vfs;
+
+const sampleData = {
+  new_field: "Иван Иванов",
+  date_field: "10.07.2025",
+  org_field: "ARta Group"
+};
 
 const ImageElement = ({ el, isSelected, onSelect, onDragEnd }) => {
   const [image] = useImage(el.src);
@@ -22,12 +32,12 @@ const ImageElement = ({ el, isSelected, onSelect, onDragEnd }) => {
   );
 };
 
-const TransformerComponent = ({ selectedShapeName, onTransform, elements }) => {
+const TransformerComponent = ({ selectedShapeName, onTransform }) => {
   const transformerRef = useRef();
 
   useEffect(() => {
-    const stage = transformerRef.current.getStage();
-    const selectedNode = stage.findOne(`#${selectedShapeName}`);
+    const stage = transformerRef.current?.getStage?.();
+    const selectedNode = stage?.findOne(`#${selectedShapeName}`);
     if (selectedNode) {
       transformerRef.current.nodes([selectedNode]);
       transformerRef.current.getLayer().batchDraw();
@@ -44,7 +54,7 @@ const TransformerComponent = ({ selectedShapeName, onTransform, elements }) => {
       id: selectedShapeName,
       x: node.x(),
       y: node.y(),
-      rotation: node.rotation(),
+      rotation: node.rotation()
     };
 
     if (node.className === "Rect" || node.className === "Image") {
@@ -121,8 +131,8 @@ export default function CanvasEditor() {
         x: 50,
         y: 100 + elements.length * 40,
         fontSize: 18,
-        draggable: true,
-      },
+        draggable: true
+      }
     ]);
   };
 
@@ -141,8 +151,8 @@ export default function CanvasEditor() {
           x: 100,
           y: 100,
           width: 150,
-          height: 150,
-        },
+          height: 150
+        }
       ]);
     };
     reader.readAsDataURL(file);
@@ -159,8 +169,8 @@ export default function CanvasEditor() {
         y: 100,
         width: 100,
         height: 60,
-        fill: "#87ceeb",
-      },
+        fill: "#87ceeb"
+      }
     ]);
   };
 
@@ -174,8 +184,8 @@ export default function CanvasEditor() {
         x: 200,
         y: 200,
         radius: 40,
-        fill: "#90ee90",
-      },
+        fill: "#90ee90"
+      }
     ]);
   };
 
@@ -188,9 +198,65 @@ export default function CanvasEditor() {
         type: "line",
         points: [300, 300, 400, 300],
         stroke: "black",
-        strokeWidth: 2,
-      },
+        strokeWidth: 2
+      }
     ]);
+  };
+
+  const generatePDF = () => {
+    const pdfContent = elements.map((el) => {
+      if (el.type === "text") {
+        const textWithData = el.content.replace(/\{\{(.*?)\}\}/g, (_, key) => sampleData[key.trim()] || "");
+        return {
+          text: textWithData,
+          fontSize: el.fontSize || 12,
+          absolutePosition: { x: el.x, y: el.y }
+        };
+      } else if (el.type === "rect") {
+        return {
+          canvas: [
+            {
+              type: "rect",
+              x: el.x,
+              y: el.y,
+              w: el.width,
+              h: el.height,
+              color: el.fill
+            }
+          ]
+        };
+      } else if (el.type === "circle") {
+        return {
+          canvas: [
+            {
+              type: "ellipse",
+              x: el.x,
+              y: el.y,
+              r1: el.radius,
+              r2: el.radius,
+              color: el.fill
+            }
+          ]
+        };
+      } else if (el.type === "line") {
+        return {
+          canvas: [
+            {
+              type: "line",
+              x1: el.points[0],
+              y1: el.points[1],
+              x2: el.points[2],
+              y2: el.points[3],
+              lineWidth: el.strokeWidth || 1,
+              lineColor: el.stroke || "black"
+            }
+          ]
+        };
+      }
+      return null;
+    });
+
+    pdfMake.createPdf({ content: pdfContent }).download("template.pdf");
   };
 
   return (
@@ -202,11 +268,12 @@ export default function CanvasEditor() {
           <button onClick={addRect} style={{ marginLeft: 10 }}>📦 Прямоугольник</button>
           <button onClick={addCircle} style={{ marginLeft: 10 }}>⚪ Круг</button>
           <button onClick={addLine} style={{ marginLeft: 10 }}>📏 Линия</button>
-          <button onClick={undo} style={{ marginLeft: 10 }} disabled={history.length === 0}>↩ Отменить</button>
-          <button onClick={redo} style={{ marginLeft: 5 }} disabled={future.length === 0}>↪ Вернуть</button>
+          <button onClick={undo} style={{ marginLeft: 10 }} disabled={history.length === 0}>↩ Undo</button>
+          <button onClick={redo} style={{ marginLeft: 5 }} disabled={future.length === 0}>↪ Redo</button>
+          <button onClick={generatePDF} style={{ marginLeft: 10, background: "#4caf50", color: "white" }}>📄 Экспорт в PDF</button>
         </div>
 
-        <Stage width={800} height={600} style={{ border: "1px solid #ccc" }}>
+        <Stage width={800} height={600} style={{ border: "1px solid #ccc", background: "#fff" }}>
           <Layer>
             {elements.map((el) => {
               if (el.type === "text") {
@@ -286,7 +353,6 @@ export default function CanvasEditor() {
             <TransformerComponent
               selectedShapeName={selectedId}
               onTransform={setElements}
-              elements={elements}
             />
           </Layer>
         </Stage>

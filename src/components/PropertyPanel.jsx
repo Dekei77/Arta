@@ -6,6 +6,25 @@ export default function PropertyPanel({ selectedElement, onChange, onDelete }) {
     onChange({ ...selectedElement, [name]: value });
   };
 
+  const handleFieldInsert = (e) => {
+    const field = e.target.value;
+    if (!field) return;
+
+    onChange({
+      ...selectedElement,
+      content: selectedElement.content + `{{${field}}}`,
+    });
+    e.target.value = ""; // сброс выбора
+  };
+
+  const availableFields = [
+    "textbox_name",
+    "textbox_bin",
+    "textbox_legal_address",
+    "listbox_region",
+    "entity_signer",
+  ];
+
   return (
     <div style={{ padding: "20px", width: "250px", borderLeft: "1px solid #ccc" }}>
       <h3>⚙ Свойства</h3>
@@ -20,14 +39,25 @@ export default function PropertyPanel({ selectedElement, onChange, onDelete }) {
             onChange={handleChange}
             style={{ width: "100%", marginBottom: "10px" }}
           />
+
           <label>Размер шрифта:</label>
           <input
             type="number"
             name="fontSize"
             value={selectedElement.fontSize}
             onChange={handleChange}
-            style={{ width: "100%" }}
+            style={{ width: "100%", marginBottom: "10px" }}
           />
+
+          <label>Добавить поле:</label>
+          <select onChange={handleFieldInsert} style={{ width: "100%" }}>
+            <option value="">Выберите поле...</option>
+            {availableFields.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
         </>
       )}
 
