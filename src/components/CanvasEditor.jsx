@@ -229,9 +229,9 @@ export default function CanvasEditor() {
             }
         ]);
     };
+
     const A4_WIDTH = 595;
     const A4_HEIGHT = 842;
-
 
     const generatePDF = () => {
         const pdfContent = elements.map((el) => {
@@ -283,145 +283,192 @@ export default function CanvasEditor() {
                         }
                     ]
                 };
+            } else if (el.type === "image") {
+                return {
+                    image: el.src,
+                    width: el.width,
+                    height: el.height,
+                    absolutePosition: { x: el.x, y: el.y }
+                };
             }
             return null;
-        });
+        }).filter(item => item !== null);
 
         pdfMake.createPdf({ content: pdfContent }).download("template.pdf");
     };
 
     return (
-        <div style={{ display: "flex", padding: 20 }}>
-            <div>
-                <div style={{ marginBottom: 10 }}>
-                    <button onClick={() => setEditMode(editMode === "visual" ? "code" : "visual")}>
-                        {editMode === "visual" ? "🧾 Код" : "🖼️ Визуал"}
-                    </button>
-
-                    {editMode === "visual" && (
-                        <>
-                            <button onClick={addTextField}>➕ Текст</button>
-                            <input type="file" accept="image/*" onChange={handleImageUpload} style={{ marginLeft: 10 }} />
-                            <button onClick={addRect} style={{ marginLeft: 10 }}>📦 Прямоугольник</button>
-                            <button onClick={addCircle} style={{ marginLeft: 10 }}>⚪ Круг</button>
-                            <button onClick={addLine} style={{ marginLeft: 10 }}>📏 Линия</button>
-                            <button onClick={undo} style={{ marginLeft: 10 }} disabled={history.length === 0}>↩ Undo</button>
-                            <button onClick={redo} style={{ marginLeft: 5 }} disabled={future.length === 0}>↪ Redo</button>
-                            {selectedId && (
-                                <>
-                                    <button onClick={() => changeZIndex(selectedId, -1)} style={{ marginLeft: 5 }}>🔽 Назад</button>
-                                    <button onClick={() => changeZIndex(selectedId, 1)} style={{ marginLeft: 5 }}>🔼 Вперёд</button>
-                                </>
-                            )}
-                            <button onClick={generatePDF} style={{ marginLeft: 10, background: "#4caf50", color: "white" }}>📄 Экспорт в PDF</button>
-                        </>
-                    )}
-                </div>
-
-                {editMode === "visual" ? (
-                    <Stage width={A4_WIDTH} height={A4_HEIGHT} style={{ border: "1px solid #ccc", background: "#fff" }}>
-                        <Layer>
-                            {[...elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)).map((el) => {
-                                if (el.type === "text") {
-                                    return (
-                                        <Text
-                                            key={el.id}
-                                            id={el.id}
-                                            text={el.content}
-                                            x={el.x}
-                                            y={el.y}
-                                            fontSize={el.fontSize}
-                                            fontStyle={el.bold ? "bold" : "normal"}
-                                            draggable
-                                            onClick={() => setSelectedId(el.id)}
-                                            onDragEnd={(e) => handleDragEnd(e, el.id)}
-                                            fill={selectedId === el.id ? "red" : "black"}
-                                        />
-                                    );
-                                } else if (el.type === "image") {
-                                    return (
-                                        <ImageElement
-                                            key={el.id}
-                                            el={el}
-                                            isSelected={selectedId === el.id}
-                                            onSelect={setSelectedId}
-                                            onDragEnd={handleDragEnd}
-                                        />
-                                    );
-                                } else if (el.type === "rect") {
-                                    return (
-                                        <Rect
-                                            key={el.id}
-                                            id={el.id}
-                                            x={el.x}
-                                            y={el.y}
-                                            width={el.width}
-                                            height={el.height}
-                                            fill={el.fill}
-                                            stroke={el.stroke || "black"}
-                                            strokeWidth={el.strokeWidth || 1}
-                                            draggable
-                                            onClick={() => setSelectedId(el.id)}
-                                            onDragEnd={(e) => handleDragEnd(e, el.id)}
-                                        />
-                                    );
-                                } else if (el.type === "circle") {
-                                    return (
-                                        <Circle
-                                            key={el.id}
-                                            id={el.id}
-                                            x={el.x}
-                                            y={el.y}
-                                            radius={el.radius}
-                                            fill={el.fill}
-                                            stroke={el.stroke || "black"}
-                                            strokeWidth={el.strokeWidth || 1}
-                                            draggable
-                                            onClick={() => setSelectedId(el.id)}
-                                            onDragEnd={(e) => handleDragEnd(e, el.id)}
-                                        />
-                                    );
-                                } else if (el.type === "line") {
-                                    return (
-                                        <Line
-                                            key={el.id}
-                                            id={el.id}
-                                            points={el.points}
-                                            stroke={el.stroke}
-                                            strokeWidth={el.strokeWidth}
-                                            draggable
-                                            onClick={() => setSelectedId(el.id)}
-                                            onDragEnd={(e) => handleDragEnd(e, el.id)}
-                                        />
-                                    );
-                                }
-                                return null;
-                            })}
-                            <TransformerComponent
-                                selectedShapeName={selectedId}
-                                onTransform={setElements}
-                            />
-                        </Layer>
-                    </Stage>
-                ) : (
-                    <ReactJson
-                        src={elements}
-                        name={false}
-                        onEdit={({ updated_src }) => setElements(updated_src)}
-                        onAdd={({ updated_src }) => setElements(updated_src)}
-                        onDelete={({ updated_src }) => setElements(updated_src)}
-                        theme="monokai"
-                        collapsed={false}
-                    />
-                )}
+        <div style={{ display: "flex", height: "100vh", background: "#f0f0f0", width: "100vw" }}>
+            {/* Боковая панель */}
+            <div style={{ width: "250px", background: "#292f3b", color: "#ecf0f1", padding: "10px", borderRight: "1px solid #34495e" }}>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {["Форма сертификат", "Форма сертификата ЕАЭС", "Certificate of prod", "Certificate of serv", "Certificate products", "Declaration of conf", "Management, syster", "Отказ письма", "SBKTS", "expertise of precis", "learning of auditor", "Сертификат - БОСС", "Акты идентификац", "Деклараты выгр", "Декларация об об"].map((item, index) => (
+                        <li key={index} style={{ padding: "5px", background: selectedId === `menu-${index}` ? "#34495e" : "transparent", cursor: "pointer", fontSize: "14px" }}
+                            onClick={() => setSelectedId(`menu-${index}`)}>
+                            {item}
+                        </li>
+                    ))}
+                </ul>
             </div>
 
-            {editMode === "visual" && (
-                <PropertyPanel
-                    selectedElement={selectedElement}
-                    onChange={updateElement}
-                    onDelete={deleteElement}
-                />
+            {/* Основная область */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", width: "calc(100% - 250px)" }}>
+                <div style={{ background: "#373d49", color: "#ecf0f1", padding: "2px 10px", width: "100vw", display: "flex", alignItems: "center", justifyContent: "space-between", height: "30px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)", position: "absolute", top: 0, left: 0, zIndex: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>Приложение</span>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>Текст</span>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>KTRM</span>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>KTRM processes</span>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>Forms</span>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>Certification</span>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>Certificate of products...</span>
+                        <span style={{ background: "#2c3e50", padding: "2px 6px", borderRadius: "2px", fontSize: "12px" }}>Форма сертификата...</span>
+                    </div>
+                    <button style={{ background: "#373d49", color: "#ecf0f1", border: "none", fontSize: "16px", cursor: "pointer" }}>⚙️</button>
+                </div>
+                <div style={{ flex: 1, display: "flex", padding: "10px", background: "#fff", marginTop: "30px" }}>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                        <div style={{ marginBottom: "10px", display: "flex", flexWrap: "wrap", gap: "5px", alignItems: "center" }}>
+                            <button onClick={() => setEditMode(editMode === "visual" ? "code" : "visual")} style={{ padding: "5px 10px", fontSize: "14px" }}>
+                                {editMode === "visual" ? "🧾 Код" : "🖼️ Визуал"}
+                            </button>
+                            {editMode === "visual" && (
+                                <>
+                                    <button onClick={addTextField} style={{ padding: "5px 10px", fontSize: "14px" }}>➕ Текст</button>
+                                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ marginLeft: "5px" }} />
+                                    <button onClick={addRect} style={{ padding: "5px 10px", fontSize: "14px" }}>📦 Прямоугольник</button>
+                                    <button onClick={addCircle} style={{ padding: "5px 10px", fontSize: "14px" }}>⚪ Круг</button>
+                                    <button onClick={addLine} style={{ padding: "5px 10px", fontSize: "14px" }}>📏 Линия</button>
+                                    <button onClick={undo} style={{ padding: "5px 10px", fontSize: "14px" }} disabled={history.length === 0}>↩ Undo</button>
+                                    <button onClick={redo} style={{ padding: "5px 10px", fontSize: "14px" }} disabled={future.length === 0}>↪ Redo</button>
+                                    {selectedId && (
+                                        <>
+                                            <button onClick={() => changeZIndex(selectedId, -1)} style={{ padding: "5px 10px", fontSize: "14px" }}>🔽 Назад</button>
+                                            <button onClick={() => changeZIndex(selectedId, 1)} style={{ padding: "5px 10px", fontSize: "14px" }}>🔼 Вперёд</button>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        {editMode === "visual" && (
+                            <div style={{ marginBottom: "10px" }}>
+                                <button onClick={generatePDF} style={{ padding: "5px 10px", background: "#4caf50", color: "white", fontSize: "14px", width: "100%" }}>📄 Экспорт в PDF</button>
+                            </div>
+                        )}
+                        <div style={{ flex: 1, overflow: "auto", border: "1px solid #ccc" }}>
+                            {editMode === "visual" ? (
+                                <Stage width={A4_WIDTH} height={A4_HEIGHT}>
+                                    <Layer>
+                                        {[...elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)).map((el) => {
+                                            if (el.type === "text") {
+                                                return (
+                                                    <Text
+                                                        key={el.id}
+                                                        id={el.id}
+                                                        text={el.content}
+                                                        x={el.x}
+                                                        y={el.y}
+                                                        fontSize={el.fontSize}
+                                                        fontStyle={el.bold ? "bold" : "normal"}
+                                                        draggable
+                                                        onClick={() => setSelectedId(el.id)}
+                                                        onDragEnd={(e) => handleDragEnd(e, el.id)}
+                                                        fill={selectedId === el.id ? "red" : "black"}
+                                                    />
+                                                );
+                                            } else if (el.type === "image") {
+                                                return (
+                                                    <ImageElement
+                                                        key={el.id}
+                                                        el={el}
+                                                        isSelected={selectedId === el.id}
+                                                        onSelect={setSelectedId}
+                                                        onDragEnd={handleDragEnd}
+                                                    />
+                                                );
+                                            } else if (el.type === "rect") {
+                                                return (
+                                                    <Rect
+                                                        key={el.id}
+                                                        id={el.id}
+                                                        x={el.x}
+                                                        y={el.y}
+                                                        width={el.width}
+                                                        height={el.height}
+                                                        fill={el.fill}
+                                                        stroke={el.stroke || "black"}
+                                                        strokeWidth={el.strokeWidth || 1}
+                                                        draggable
+                                                        onClick={() => setSelectedId(el.id)}
+                                                        onDragEnd={(e) => handleDragEnd(e, el.id)}
+                                                    />
+                                                );
+                                            } else if (el.type === "circle") {
+                                                return (
+                                                    <Circle
+                                                        key={el.id}
+                                                        id={el.id}
+                                                        x={el.x}
+                                                        y={el.y}
+                                                        radius={el.radius}
+                                                        fill={el.fill}
+                                                        stroke={el.stroke || "black"}
+                                                        strokeWidth={el.strokeWidth || 1}
+                                                        draggable
+                                                        onClick={() => setSelectedId(el.id)}
+                                                        onDragEnd={(e) => handleDragEnd(e, el.id)}
+                                                    />
+                                                );
+                                            } else if (el.type === "line") {
+                                                return (
+                                                    <Line
+                                                        key={el.id}
+                                                        id={el.id}
+                                                        points={el.points}
+                                                        stroke={el.stroke}
+                                                        strokeWidth={el.strokeWidth}
+                                                        draggable
+                                                        onClick={() => setSelectedId(el.id)}
+                                                        onDragEnd={(e) => handleDragEnd(e, el.id)}
+                                                    />
+                                                );
+                                            }
+                                            return null;
+                                        })}
+                                        <TransformerComponent
+                                            selectedShapeName={selectedId}
+                                            onTransform={setElements}
+                                        />
+                                    </Layer>
+                                </Stage>
+                            ) : (
+                                <ReactJson
+                                    src={elements}
+                                    name={false}
+                                    onEdit={({ updated_src }) => setElements(updated_src)}
+                                    onAdd={({ updated_src }) => setElements(updated_src)}
+                                    onDelete={({ updated_src }) => setElements(updated_src)}
+                                    theme="monokai"
+                                    collapsed={false}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Панель свойств */}
+            {selectedId && (
+                <div style={{ width: "300px", background: "#fff", padding: "10px", borderLeft: "1px solid #ccc" }}>
+                    <h3 style={{ margin: "0 0 10px" }}>Свойства</h3>
+                    {selectedElement && (
+                        <PropertyPanel
+                            selectedElement={selectedElement}
+                            onChange={updateElement}
+                            onDelete={deleteElement}
+                        />
+                    )}
+                </div>
             )}
         </div>
     );
